@@ -3,42 +3,42 @@ stages:
   prepare:
     cmd: python src/prepare.py
     deps:
-    - path: data/raw/red
+    - path: data/raw/green
       hash: md5
-      md5: b452f8f1b6647097a534c5942772c2e8.dir
-      size: 234929614
-      nfiles: 3497
+      md5: 7a7933751742aa166d20d725dc78a769.dir
+      size: 88970677
+      nfiles: 1931
     - path: src/prepare.py
       hash: md5
       md5: 06b9c6b375495b94d537d44a4522c400
       size: 3817
     params:
       params.yaml:
-        dataset: red
+        dataset: green
         prepare:
           max_side: 1920
           jpeg_quality: 95
     outs:
     - path: data/prepared
       hash: md5
-      md5: c68c90a26ee66ada84deb98b4bb143cb.dir
-      size: 234928592
-      nfiles: 3497
+      md5: 1f05a84887a4edfea5f582a806df2e5a.dir
+      size: 88970087
+      nfiles: 1931
     - path: metrics/data_stats.json
       hash: md5
-      md5: bbcb1ace18f95a441465e9eef9676b83
-      size: 244
+      md5: 8535ab16355326b1d95b026d91b39e22
+      size: 243
   train:
     cmd: python src/train.py
     deps:
     - path: data/prepared
       hash: md5
-      md5: c68c90a26ee66ada84deb98b4bb143cb.dir
-      size: 234928592
-      nfiles: 3497
-    - path: models/released/red_yolo26n.pt
+      md5: 1f05a84887a4edfea5f582a806df2e5a.dir
+      size: 88970087
+      nfiles: 1931
+    - path: models/released/green_yolo26n.pt
       hash: md5
-      md5: e1e98158284ad63aa0298cfb721f108e
+      md5: 48bc846ea4bcb3701b5fe4fed0e2ef92
       size: 5456389
     - path: src/device.py
       hash: md5
@@ -50,7 +50,7 @@ stages:
       size: 1746
     params:
       params.yaml:
-        dataset: red
+        dataset: green
         train:
           mode: released
           base_model: yolo26n.pt
@@ -61,19 +61,19 @@ stages:
     outs:
     - path: models/model.pt
       hash: md5
-      md5: e1e98158284ad63aa0298cfb721f108e
+      md5: 48bc846ea4bcb3701b5fe4fed0e2ef92
       size: 5456389
   evaluate:
     cmd: python src/evaluate.py
     deps:
     - path: data/prepared
       hash: md5
-      md5: c68c90a26ee66ada84deb98b4bb143cb.dir
-      size: 234928592
-      nfiles: 3497
+      md5: 1f05a84887a4edfea5f582a806df2e5a.dir
+      size: 88970087
+      nfiles: 1931
     - path: models/model.pt
       hash: md5
-      md5: e1e98158284ad63aa0298cfb721f108e
+      md5: 48bc846ea4bcb3701b5fe4fed0e2ef92
       size: 5456389
     - path: src/device.py
       hash: md5
@@ -92,10 +92,10 @@ stages:
     outs:
     - path: metrics/metrics.json
       hash: md5
-      md5: 1f1a2f4e4eede03076b96b6b5e5c837f
-      size: 378
+      md5: 72fc3ab92fd93e3826c7c339311deed5
+      size: 376
     - path: metrics/plots
       hash: md5
-      md5: fcc76cef6e7c80c50308374e794566c4.dir
-      size: 239152
+      md5: 705408662fdf384c10af419582bf8a81.dir
+      size: 242511
       nfiles: 3

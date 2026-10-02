@@ -1,18 +1,18 @@
 {
-  "dataset": "red",
+  "dataset": "green",
   "train": {
-    "images": 1484,
-    "laser": 907,
-    "no_laser": 577
+    "images": 820,
+    "laser": 519,
+    "no_laser": 301
   },
   "valid": {
-    "images": 48,
-    "laser": 22,
-    "no_laser": 26
+    "images": 25,
+    "laser": 11,
+    "no_laser": 14
   },
   "test": {
-    "images": 216,
-    "laser": 113,
-    "no_laser": 103
+    "images": 120,
+    "laser": 72,
+    "no_laser": 48
   }
 }

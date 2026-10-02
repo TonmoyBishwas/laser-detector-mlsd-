@@ -1,7 +1,7 @@
 # Every setting the pipeline uses. Change a value and `dvc status` shows which
 # stages are out of date; `dvc repro` reruns only those.
 
-dataset: red            # which laser: red | green  (picks data/raw/<dataset>)
+dataset: green           # which laser: red | green  (picks data/raw/<dataset>)
 
 prepare:
   max_side: 1920        # resize frames whose longest side is bigger than this.
