@@ -1,0 +1,5 @@
+outs:
+- md5: 48bc846ea4bcb3701b5fe4fed0e2ef92
+  size: 5456389
+  hash: md5
+  path: green_yolo26n.pt

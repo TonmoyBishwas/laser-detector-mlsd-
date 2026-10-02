@@ -1,0 +1,6 @@
+# Install PyTorch with CUDA first (see README), then: pip install -r requirements.txt
+ultralytics==8.4.63
+dvc==3.67.1
+opencv-python
+pyyaml
+numpy

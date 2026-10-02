@@ -1,0 +1,58 @@
+[Red Laser]
+
+Videos (4K, 60 fps) -> frames resized to 1920x1080
+
+no laser video
+ 	(a) no_laser.mp4        2min34s : every 20th frame : 463 pictures
+
+laser videos
+	(b) 20260517_162950.mp4   32s   : every 5th frame  : 389 pictures
+	(c) 20260517_162824.mp4   36s   : every 5th frame  : 437 pictures
+	(d) 20260517_162427.mp4   55s   : every 5th frame  : 660 pictures
+
+total: 463 + 389 + 437 + 660 = 1949 pictures
+(60 fps neighbouring frames are almost identical -> every 5th frame = 12 per second;
+ the no-laser video is long and static -> every 20th frame = 3 per second)
+
+-----------------------------------------------------------------
+
+Split: frames were split in whole 1-second blocks (12 frames), every video appears in every split.
+
+Small Dataset 432 (picked from the 1949, uploaded to Roboflow):
+*all human annotated
+where 241 (+), 191 (-)
+
+	Train: 150 : 100(+), 50(-)
+	Valid:  48 :  22(+), 26(-)
+	Test : 216 : 113(+), 103(-)
+	Not used: 18 : 6(+), 12(-)   (too close in time to a valid/test frame)
+	           (150 + 48 + 216 + 18 = 432)
+
+Remaining: 1949 - 432 = 1517 pictures
+removed 175 because they are within 0.5 s of a valid/test frame
+(near-copies of test frames - training on them would leak the test set)
+Pool (unlabelled) = 1517 - 175 = 1342 pictures
+
+-----------------------------------------------------------------
+
+Teacher model: YOLO26l, 1280 px, 150 epochs, trained on the 150 Train images
+Metrics on Test (216):  Precision 0.982 | Recall 1.000 | mAP50 0.994 | mAP50-95 0.771
+                        laser / no-laser accuracy 99.5% (215/216), 1 false alarm, 0 misses
+Metrics on Valid (48):  Precision 1.000 | Recall 0.953 | mAP50 0.955 | mAP50-95 0.566
+
+Teacher annotated the 1342 pool images (the 150 Train images already had human labels):
+	confidence >= 0.5 -> laser | < 0.2 -> no laser | in between -> unsure
+	(self-training: the teacher learned once more from its own confident labels before the final labels)
+	result: 807(+), 527(-), 8 unsure  -> the 8 unsure were left out
+
+Final Dataset = 1342 - 8 unsure + 150 Train + 48 Valid + 216 Test = 1748 images
+	train: 1484 (150 human + 1334 teacher), 907(+), 577(-)
+	valid:   48, 22(+), 26(-)
+	test :  216, 113(+), 103(-)
+
+-----------------------------------------------------------------
+
+We used this Final dataset to train our final YOLO26n model (1280 px, 100 epochs)
+Metrics on Test (216):  Precision 0.973 | Recall 0.991 | mAP50 0.994 | mAP50-95 0.815
+                        laser / no-laser accuracy 97.7% (211/216), 1 false alarm, 4 misses
+Metrics on Valid (48):  Precision 0.996 | Recall 0.955 | mAP50 0.955 | mAP50-95 0.619

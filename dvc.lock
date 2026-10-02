@@ -1,0 +1,93 @@
+schema: '2.0'
+stages:
+  prepare:
+    cmd: python src/prepare.py
+    deps:
+    - path: data/raw/red
+      hash: md5
+      md5: b452f8f1b6647097a534c5942772c2e8.dir
+      size: 234929614
+      nfiles: 3497
+    - path: src/prepare.py
+      hash: md5
+      md5: fda3d8b61d78b6fd5ce3d2fc124cc3f0
+      size: 3581
+    params:
+      params.yaml:
+        dataset: red
+        prepare:
+          max_side: 1920
+          jpeg_quality: 95
+    outs:
+    - path: data/prepared
+      hash: md5
+      md5: b0928f4d7e9a3cab6c21aac3110428e5.dir
+      size: 234929640
+      nfiles: 3497
+    - path: metrics/data_stats.json
+      hash: md5
+      md5: 07e1b89de4bca23d8c85b0b8f0ba49ec
+      size: 261
+  train:
+    cmd: python src/train.py
+    deps:
+    - path: data/prepared
+      hash: md5
+      md5: b0928f4d7e9a3cab6c21aac3110428e5.dir
+      size: 234929640
+      nfiles: 3497
+    - path: models/released/red_yolo26n.pt
+      hash: md5
+      md5: e1e98158284ad63aa0298cfb721f108e
+      size: 5456389
+    - path: src/train.py
+      hash: md5
+      md5: 3b54be6bf48d94cccc395128cd57b75c
+      size: 1699
+    params:
+      params.yaml:
+        dataset: red
+        train:
+          mode: released
+          base_model: yolo26n.pt
+          epochs: 100
+          imgsz: 1280
+          batch: 16
+          seed: 0
+    outs:
+    - path: models/model.pt
+      hash: md5
+      md5: e1e98158284ad63aa0298cfb721f108e
+      size: 5456389
+  evaluate:
+    cmd: python src/evaluate.py
+    deps:
+    - path: data/prepared
+      hash: md5
+      md5: b0928f4d7e9a3cab6c21aac3110428e5.dir
+      size: 234929640
+      nfiles: 3497
+    - path: models/model.pt
+      hash: md5
+      md5: e1e98158284ad63aa0298cfb721f108e
+      size: 5456389
+    - path: src/evaluate.py
+      hash: md5
+      md5: c3ac869411301a8c05dec4b97c2f5604
+      size: 2527
+    params:
+      params.yaml:
+        evaluate:
+          imgsz: 1280
+          conf: 0.25
+          batch: 16
+    outs:
+    - path: metrics/metrics.json
+      hash: md5
+      md5: 10892675b38829db3e8003e87d6fb2ee
+      size: 399
+    - path: metrics/plots
+      hash: md5
+      md5: 47f86226d2e7f7edc4d0a5f26466d6f7.dir
+      size: 241422
+      nfiles: 3

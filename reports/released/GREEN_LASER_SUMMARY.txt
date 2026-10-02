@@ -1,0 +1,72 @@
+[Green Laser]
+
+Source: our green-laser dataset from the previous course project, hand-labelled on Roboflow
+(project "Laser Detection Green"). Downloaded in YOLO format: 1069 frames, 1920x1080.
+
+8 short videos (clips):
+	close_3min_best          386 frames : 275(+), 111(-)
+	close_1min8s             236 frames : 212(+),  24(-)
+	close_no_laser_grey      181 frames :   0(+), 181(-)
+	close_no_laser_yelowbg    74 frames :   0(+),  74(-)
+	far_grey_bg2              68 frames :  64(+),   4(-)
+	far_yelow_Bg              51 frames :  49(+),   2(-)
+	far_grey_bg               44 frames :  43(+),   1(-)
+	close-47                  29 frames :  28(+),   1(-)
+
+total: 1069 pictures, 671(+) laser, 398(-) no laser
+
+-----------------------------------------------------------------
+
+Split: frames were split in blocks of 10 consecutive frames, every clip appears in train and test.
+
+The dataset was already fully labelled, so we used it as a controlled experiment:
+we downloaded ALL 1069 images with their labels, then KEPT the human labels only for a small part,
+and HID the labels of the rest (the pool). The split code copies the pool images WITHOUT labels;
+their real labels are never given to any model - they are only used at the end to check the teacher.
+
+	Train: 92  : 66(+), 26(-)    (labels kept)
+	Valid: 25  : 11(+), 14(-)    (labels kept)
+	Test : 120 : 72(+), 48(-)    (labels kept)
+	Pool : 728 : labels hidden - the teacher labels these
+	Not used: 104   (within 5 frames of a valid/test frame - near-copies, training on them would leak the test set)
+	           (92 + 25 + 120 + 728 + 104 = 1069)
+
+-----------------------------------------------------------------
+
+Teacher model: YOLO26l, 1280 px, 150 epochs, trained on the 92 Train images
+Metrics on Test (120):  Precision 0.829 | Recall 0.806 | mAP50 0.732 | mAP50-95 0.361
+                        laser / no-laser accuracy 98.3% (118/120), 1 false alarm, 1 miss
+Metrics on Valid (25):  Precision 0.539 | Recall 0.545 | mAP50 0.340 | mAP50-95 0.174   (only 11 lasers - very noisy)
+
+Teacher annotated the 728 pool images:
+	confidence >= 0.5 -> laser | < 0.2 -> no laser | in between -> unsure -> checked by a human
+	(self-training: the teacher learned once more from its own confident labels before the final labels)
+	result: 449(+), 275(-), 4 unsure (all 4 checked by a human: laser)
+
+Grading the teacher's labels with the hidden human labels (724 teacher-labelled frames):
+	laser / no-laser decision wrong: 0 of 724
+	boxes: precision 0.90, recall 0.90 at IoU 0.5  |  0.98 / 0.98 at IoU 0.3
+
+Final Dataset = 728 pool + 92 Train + 25 Valid + 120 Test = 965 images
+	train: 820 (92 human + 728 teacher), 519(+), 301(-)
+	valid:  25, 11(+), 14(-)
+	test : 120, 72(+), 48(-)
+
+-----------------------------------------------------------------
+
+We used this Final dataset to train our final YOLO26n model (1280 px, 100 epochs)
+Metrics on Test (120):  Precision 0.833 | Recall 0.830 | mAP50 0.700 | mAP50-95 0.289
+                        laser / no-laser accuracy 99.2% (119/120), 0 false alarms, 1 miss
+Metrics on Valid (25):  Precision 0.363 | Recall 0.364 | mAP50 0.225 | mAP50-95 0.178   (only 11 lasers - very noisy)
+
+-----------------------------------------------------------------
+
+Folders (green_laser_submission/):
+1) 01_code_split_dataset      - code that splits the dataset into train / valid / test / pool
+                                 (pool images are copied without their labels)
+2) 02_roboflow_dataset_1069    - the dataset downloaded from Roboflow: all 1069 images + labels
+3) 03_labelled_split           - the images that keep their labels: train 92 / valid 25 / test 120 / not used 104
+4) 04_teacher_model            - notebook for training the teacher model, metrics and outputs, the 728 pool images,
+                                 the teacher's labels and the check against the hidden labels
+5) 05_final_dataset_965        - dataset of 92 + 728 train images (+ valid, test), ready for training the final model
+6) 06_final_model              - notebook, output metrics, and the final yolov26n model

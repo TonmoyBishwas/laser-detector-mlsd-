@@ -1,0 +1,6 @@
+outs:
+- md5: 7a7933751742aa166d20d725dc78a769.dir
+  size: 88970677
+  nfiles: 1931
+  hash: md5
+  path: green

@@ -1,0 +1,28 @@
+# Every setting the pipeline uses. Change a value and `dvc status` shows which
+# stages are out of date; `dvc repro` reruns only those.
+
+dataset: red            # which laser: red | green  (picks data/raw/<dataset>)
+
+prepare:
+  max_side: 1920        # resize frames whose longest side is bigger than this.
+                        # 1920 = keep the full-size frames (they are 1920x1080).
+                        # 1280 makes a smaller dataset but measured test mAP50-95
+                        # dropped 0.815 -> 0.731 on red: the dot is only a few pixels.
+  jpeg_quality: 95      # only used for frames that get resized
+
+train:
+  # released = use the semi-supervised model trained in the earlier project
+  #            (models/released/<dataset>_yolo26n.pt) - no training, takes seconds
+  # train    = train a new YOLO26n from scratch with the settings below
+  #            (100 epochs at 1280 px took several hours on an RTX 3090)
+  mode: released
+  base_model: yolo26n.pt
+  epochs: 100
+  imgsz: 1280
+  batch: 16
+  seed: 0
+
+evaluate:
+  imgsz: 1280
+  conf: 0.25            # confidence for the laser / no-laser decision per image
+  batch: 16

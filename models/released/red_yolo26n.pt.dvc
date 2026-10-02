@@ -1,0 +1,5 @@
+outs:
+- md5: e1e98158284ad63aa0298cfb721f108e
+  size: 5456389
+  hash: md5
+  path: red_yolo26n.pt

@@ -1,0 +1,18 @@
+{
+  "dataset": "red",
+  "train": {
+    "images": 1484,
+    "laser": 907,
+    "no_laser": 577
+  },
+  "valid": {
+    "images": 48,
+    "laser": 22,
+    "no_laser": 26
+  },
+  "test": {
+    "images": 216,
+    "laser": 113,
+    "no_laser": 103
+  }
+}

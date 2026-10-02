@@ -1,0 +1,52 @@
+stages:
+  prepare:
+    cmd: python src/prepare.py
+    deps:
+      - src/prepare.py
+      - data/raw/${dataset}
+    params:
+      - dataset
+      - prepare
+    outs:
+      - data/prepared
+    metrics:
+      - metrics/data_stats.json:
+          cache: false
+
+  train:
+    cmd: python src/train.py
+    deps:
+      - src/train.py
+      - data/prepared
+      - models/released/${dataset}_yolo26n.pt
+    params:
+      - dataset
+      - train
+    outs:
+      - models/model.pt
+
+  evaluate:
+    cmd: python src/evaluate.py
+    deps:
+      - src/evaluate.py
+      - data/prepared
+      - models/model.pt
+    params:
+      - evaluate
+    metrics:
+      - metrics/metrics.json:
+          cache: false
+    plots:
+      - metrics/plots:
+          cache: false
+
+# Training curves of the released models (one row per epoch, from the earlier project).
+plots:
+  - reports/released/red_train_results.csv:
+      x: epoch
+      y: metrics/mAP50(B)
+      title: Red YOLO26n - validation mAP50 per epoch
+  - reports/released/green_train_results.csv:
+      x: epoch
+      y: metrics/mAP50(B)
+      title: Green YOLO26n - validation mAP50 per epoch
