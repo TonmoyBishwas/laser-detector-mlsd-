@@ -1,0 +1,6 @@
+# Keep LF line endings on every OS: DVC hashes the bytes of src/*.py,
+# so a CRLF checkout on Windows would make dvc status report changed code.
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.pt binary
