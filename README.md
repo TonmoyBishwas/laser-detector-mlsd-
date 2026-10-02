@@ -89,7 +89,7 @@ parameter and output of the last run. `dvc status` / `dvc repro` compare the cur
 with it and rerun only the stages whose inputs changed, plus everything downstream.
 
 **Remote storage.** Data and models live in the DagsHub DVC remote
-(`https://dagshub.com/ttonmoy46/laser-detector-mlsd.dvc`); Git only holds the small `.dvc`
+(`https://dagshub.com/ttonmoy46/laser-detector-mlsd-.dvc`); Git only holds the small `.dvc`
 pointer files, code and metrics.
 
 ## 5. How to run
@@ -120,7 +120,8 @@ dvc repro         # reruns them on the green dataset
 dvc metrics diff  # compare with the last committed metrics
 ```
 
-`dvc pull` from DagsHub is public. To `dvc push` you need write access:
+The DagsHub repo is private, so `dvc pull` and `dvc push` both need a DagsHub login
+(run these once before `dvc pull`):
 
 ```bash
 dvc remote modify origin --local auth basic

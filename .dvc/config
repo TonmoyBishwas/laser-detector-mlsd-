@@ -2,4 +2,4 @@
     autostage = false
     remote = origin
 ['remote "origin"']
-    url = https://dagshub.com/ttonmoy46/laser-detector-mlsd.dvc
+    url = https://dagshub.com/ttonmoy46/laser-detector-mlsd-.dvc
