@@ -146,7 +146,24 @@ export SSL_CERT_FILE="$(python -c 'import certifi; print(certifi.where())')"
 dvc pull
 ```
 
-### Live detection (`detect.py`)
+### Live detection with the pipeline's model (`main.py`)
+
+`python main.py` runs `models/model.pt` — the model the pipeline produced — with the
+settings in the `detect:` section of `params.yaml` (source, input size, per-laser
+confidence). Which laser is chosen through DVC, so the command never changes:
+
+```bash
+git checkout green && dvc checkout   # green branch: dataset: green, its model and metrics
+python main.py
+git checkout main && dvc checkout    # main: red
+python main.py
+python main.py --source "rtsp://user:pass@192.168.1.20:554/stream1"   # one-off override
+```
+
+Or stay on one branch, edit `dataset:` in `params.yaml` and run `dvc repro`. If
+`params.yaml` and `models/model.pt` disagree, `main.py` stops and says which command to run.
+
+### Live detection with any released model (`detect.py`)
 
 Runs the released models on a webcam, RTSP stream, video file or image, on this machine:
 
