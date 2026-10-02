@@ -69,20 +69,23 @@ def main():
                 # YOLO labels are relative to the image size, so they stay valid after resizing.
                 cv2.imwrite(str(out / split / "images" / img_path.name), resize(img, p["max_side"]),
                             [cv2.IMWRITE_JPEG_QUALITY, p["jpeg_quality"]])
-            (out / split / "labels" / f"{img_path.stem}.txt").write_text("\n".join(lines) + ("\n" if lines else ""))
+            (out / split / "labels" / f"{img_path.stem}.txt").write_text("\n".join(lines) + ("\n" if lines else ""),
+                                                                      newline="\n")
             n_img += 1
             n_pos += bool(lines)
         stats[split] = {"images": n_img, "laser": n_pos, "no_laser": n_img - n_pos}
         print(f"[prepare] {split:5s}: {n_img} images, {n_pos} laser, {n_img - n_pos} no laser")
 
     # Relative path: DVC runs every stage from the repo root, so this works on any machine.
+    # Every text file is written with newline="\n" so the bytes (and DVC's hashes) are the
+    # same on Windows and Linux.
     (out / "data.yaml").write_text(yaml.safe_dump({
         "path": "data/prepared", "train": "train/images", "val": "valid/images",
         "test": "test/images", "names": {0: "laser"},
-    }, sort_keys=False))
+    }, sort_keys=False), newline="\n")
 
     Path("metrics").mkdir(exist_ok=True)
-    json.dump(stats, open("metrics/data_stats.json", "w"), indent=2)
+    json.dump(stats, open("metrics/data_stats.json", "w", newline="\n"), indent=2)
 
 
 if __name__ == "__main__":

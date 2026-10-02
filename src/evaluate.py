@@ -53,7 +53,8 @@ def main():
     Path("metrics/plots").mkdir(parents=True, exist_ok=True)
     for name in PLOTS:
         shutil.copyfile(run_dir / "eval_test" / name, Path("metrics/plots") / name)
-    json.dump(metrics, open("metrics/metrics.json", "w"), indent=2)
+    # newline="\n": the same bytes on every OS, so DVC's hash matches after a clone.
+    json.dump(metrics, open("metrics/metrics.json", "w", newline="\n"), indent=2)
     print(json.dumps(metrics, indent=2))
 
 
