@@ -74,6 +74,18 @@ dvc repro     # rerun the pipeline; same data + same code + same params = same r
 We tested this on a fresh clone: `dvc pull` downloaded everything and `dvc status` reported
 "Data and pipelines are up to date".
 
+We also did it on a second, very different machine, a MacBook Air M4 (no NVIDIA GPU):
+```
+git clone https://github.com/TonmoyBishwas/laser-detector-mlsd-.git
+cd laser-detector-mlsd-
+uv venv --python 3.12 .venv ; source .venv/bin/activate
+uv pip install torch torchvision -r requirements.txt     # normal PyTorch, has Apple GPU support
+(set the DagsHub login)
+dvc pull      # 5,408 files: both datasets, both models, pipeline outputs
+dvc repro     # runs on the Apple GPU (mps) in about 30 s
+```
+The results matched the PC (see section 5, "Results on the Mac").
+
 ---
 
 ## 2. DVC in more depth
@@ -135,7 +147,22 @@ Turns a Git repo into a DVC project: creates `.dvc/` with `config`, the cache fo
 
 **What is `dvc checkout`?**
 Restores the workspace files to match the current pointers / `dvc.lock`, using the local
-cache. `dvc pull` = download from the remote (`dvc fetch`) + `dvc checkout`.
+cache. `dvc pull` = download from the remote (`dvc fetch`) + `dvc checkout`. We use it after
+switching Git branches: `git checkout green` changes `dvc.lock` to the green run, then
+`dvc checkout` swaps `models/model.pt` and `data/prepared` to the green versions.
+
+**Why do you have a `green` branch?**
+One branch per laser: `main` has `dataset: red`, `green` has `dataset: green`, each with its
+own `dvc.lock` and metrics committed. It is the usual Git + DVC way to keep experiments
+side by side: switching is `git checkout <branch>` + `dvc checkout` (seconds, from the cache,
+no rerun), and `dvc metrics diff main green` / `dvc params diff main green` compare them
+without switching. Both branches are on GitHub, and their DVC files on DagsHub.
+
+**What is the difference between `git checkout` and `dvc checkout`?**
+`git checkout` changes the files Git tracks (code, `params.yaml`, `dvc.lock`, `.dvc`
+pointers). It does not touch the big files, so right after it `dvc status` shows
+`data/prepared` and `models/model.pt` as modified. `dvc checkout` then makes the big files
+match the new pointers.
 
 **When you switched back from green to red, why did prepare and train not rerun?**
 DVC's run cache remembers the outputs of every past run of a stage for a given set of inputs.
@@ -312,13 +339,59 @@ The validation set has only 25 frames with 11 lasers, so one or two mistakes cha
 score enormously. That is why the test set (120 frames) is the main result.
 
 **Do your pipeline results match the original ones?**
-Yes, exactly: `dvc repro` reproduces 0.973 / 0.991 / 0.994 / 0.815 and 97.7 % for red,
-and 0.833 / 0.830 / 0.700 / 0.289 and 99.2 % for green.
+On the PC (NVIDIA GPU), exactly: `dvc repro` reproduces 0.973 / 0.991 / 0.994 / 0.815 and
+97.7 % for red, and 0.833 / 0.830 / 0.700 / 0.289 and 99.2 % for green.
+
+**Results on the Mac (Apple GPU, `mps`)** — these are the numbers now committed in
+`metrics/metrics.json` on `main` (red) and `green`:
+
+| model | precision | recall | mAP50 | mAP50-95 | image accuracy |
+|---|---|---|---|---|---|
+| Red, PC (CUDA) | 0.973 | 0.991 | 0.994 | 0.815 | 97.7 % (1 false alarm, 4 misses) |
+| Red, Mac (MPS) | 0.974 | 0.991 | 0.994 | 0.813 | 98.1 % (1 false alarm, 3 misses) |
+| Green, PC (CUDA) | 0.833 | 0.830 | 0.700 | 0.289 | 99.2 % (0 false alarms, 1 miss) |
+| Green, Mac (MPS) | 0.833 | 0.833 | 0.700 | 0.286 | 99.2 % (0 false alarms, 1 miss) |
+
+**Why are the Mac numbers not exactly the same?**
+Same data, same model file, same code and parameters, but a different GPU. NVIDIA and Apple
+GPUs do floating-point maths in a slightly different order, so confidences and box
+coordinates differ in the last digits. mAP50-95 moves in the third decimal, and one red test
+frame whose confidence was right at the 0.25 threshold flipped from "miss" to "found". This
+is hardware-level noise, not a change in the experiment; DVC guarantees the same inputs,
+the hardware decides the last bits of the output.
+
+**Show the curves.** `metrics/plots/` (tracked in Git, `dvc plots show`), red on `main`:
+
+![Red precision-recall curve](docs/img/red_PR_curve.png)
+
+![Red confusion matrix](docs/img/red_confusion.png)
+
+Green, on the `green` branch:
+
+![Green precision-recall curve](docs/img/green_PR_curve.png)
+
+![Green confusion matrix](docs/img/green_confusion.png)
 
 **What does the confidence threshold do?**
 A box is kept only if the model's confidence is at least that value. Higher threshold →
 fewer false alarms but more misses; lower → the opposite. `evaluate.conf` in `params.yaml`
 (0.25) sets it for the image-level accuracy.
+
+**Why does live detection use 0.80 for red but 0.25 for green?**
+On a laptop webcam pointed at a normal room, the red model at 0.25 gave many false alarms
+(red / bright objects that look like a dot); green gave none. We measured the trade-off on
+the red test set before raising it:
+
+| red threshold | false alarms (103 empty frames) | misses (113 lasers) |
+|---|---|---|
+| 0.25 | 1 | 3 |
+| 0.5 – 0.7 | 1 | 4 |
+| **0.80** | **0** | **8** |
+| 0.90 | 0 | 17 |
+
+0.80 removes the false alarms for 5 extra misses (93 % recall). The values live in
+`params.yaml` → `detect.conf`; the pipeline's `evaluate.conf` stays 0.25 so the reported
+metrics are unchanged.
 
 ---
 
@@ -331,8 +404,12 @@ data/prepared/               output of prepare (DVC)
 models/released/             semi-supervised YOLO26n models (DVC; .dvc pointers in Git)
 models/model.pt              output of train (DVC)
 src/prepare.py, train.py, evaluate.py   the three stages
+src/device.py                picks the device: NVIDIA GPU -> Apple GPU (mps) -> CPU
+main.py                      live detection with the pipeline's model (models/model.pt)
+detect.py                    live detection with a chosen released model (--laser red|green|both)
 metrics/                     metrics.json, data_stats.json, plots (Git)
 reports/released/            summaries and per-epoch training logs of the trained models
+docs/                        screenshots for these notes and the PDF versions
 dvc.yaml, dvc.lock, params.yaml, requirements.txt, README.md
 ```
 
@@ -342,12 +419,13 @@ DVC (DagsHub): the datasets, the models, `data/prepared`, `models/model.pt`.
 
 **What does `requirements.txt` contain?**
 `ultralytics==8.4.63` (the version the models were trained and evaluated with), `dvc`,
-OpenCV, PyYAML, NumPy. PyTorch with CUDA is installed separately (see README) because it
-needs the CUDA build.
+OpenCV, PyYAML, NumPy. PyTorch is installed separately (see README): the CUDA build on the
+PC, the normal build on the Mac (it already supports the Apple GPU).
 
 **Does it need a GPU?**
-The evaluate stage runs on the NVIDIA GPU (`device=0`). `dvc status`, `dag`, `add`, `push`
-and `pull` work on any machine.
+No. `src/device.py` picks the NVIDIA GPU on the PC, the Apple GPU (`mps`) on the Mac, and
+the CPU anywhere else; train and evaluate use it. A GPU only makes it faster. `src/device.py`
+is a dependency of train and evaluate in `dvc.yaml`, so changing it reruns them.
 
 ---
 
@@ -378,3 +456,66 @@ which would fit:
   no-laser decisions out of 724), for red we could not, because the hidden labels did not
   exist.
 - The default pipeline reuses the trained model; full retraining takes hours.
+- On a laptop webcam in a normal room the red model gives false alarms at the default 0.25
+  threshold. That is exactly the data drift described in section 7: the training frames are
+  all of a projector screen. Raising the live threshold to 0.80 hides it; the real fix is to
+  add frames from the new camera / room (including empty ones) and retrain.
+
+---
+
+## 9. Running it on the Mac and live detection
+
+**What did you change to run it on the MacBook?**
+Only two things. (1) `device=0` (NVIDIA only) in train / evaluate became `best_device()`
+from `src/device.py`: NVIDIA GPU → Apple GPU (`mps`) → CPU. (2) The python.org Python had no
+SSL certificates, so `dvc pull` failed with `CERTIFICATE_VERIFY_FAILED`; pointing
+`SSL_CERT_FILE` at `certifi`'s certificate file fixed it (no code change).
+
+**Why did DVC rerun train and evaluate after that change?**
+The scripts are dependencies of their stages, and `src/device.py` was added as a new
+dependency in `dvc.yaml`. Their hashes changed, so `dvc status` showed train and evaluate
+out of date (prepare was untouched, so it didn't rerun).
+
+**What is `main.py`?**
+Live detection with the pipeline's own output. It loads `models/model.pt` (what the train
+stage produced for the current `dataset`), reads its settings from `params.yaml` →
+`detect:` (source, image size, per-laser confidence) and shows the camera feed with the dot
+boxed. The command is always `python main.py`; which laser it detects is decided by DVC
+(the branch / `dataset` parameter), not by a flag.
+
+**What sources does it support?**
+A webcam (`source: 0`, or `1` for an iPhone via Continuity Camera), an RTSP or HTTP stream
+(`rtsp://user:pass@ip:554/...`), a video file or a single image. For live streams a
+background thread keeps only the newest frame, so if the model is slower than the camera
+it skips frames instead of falling further and further behind.
+
+**How fast is it on the Mac?**
+YOLO26n on the M4's GPU: about 48 frames per second at 1280 px, 64 at 960 px, 73 at 640 px.
+1280 is the default because the models were trained at 1280 and the dot is tiny.
+
+**How do you make sure `main.py` uses the right model?**
+It checks three things agree before loading the model: `params.yaml`'s `dataset`, the
+dataset recorded for the train stage in `dvc.lock`, and the MD5 hash of the real
+`models/model.pt` against the hash in `dvc.lock`. Changing `dataset` without `dvc repro`, or
+switching branch without `dvc checkout`, stops it with the command to run. It is the same
+hash check DVC itself does.
+
+**Why doesn't editing `detect:` in `params.yaml` make the pipeline out of date?**
+A stage only depends on the parameters listed under its `params:` in `dvc.yaml`. No stage
+lists `detect`, so DVC ignores it; only `main.py` reads it.
+
+**What does the output look like?**
+
+![main.py on the main branch: red dot found with confidence 0.94](docs/img/detect_red.jpg)
+
+![main.py on the green branch: green dot found with confidence 0.90](docs/img/detect_green.jpg)
+
+![Another red test frame](docs/img/detect_red2.jpg)
+
+![Bright fluorescent tube ignored, only the dot found](docs/img/detect_green2.jpg)
+
+![Frame without a laser: nothing detected](docs/img/detect_none.jpg)
+
+The cyan box marks the area shown magnified ×3 in the corner (the dot is only about
+20 pixels wide in a 1920×1080 frame). The top-left text is the status line the live window
+shows (`LASER x1` / `no laser`, plus FPS for a live stream).

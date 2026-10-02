@@ -191,8 +191,10 @@ Test sets are hand-labelled frames the models never trained on.
 | **Red** YOLO26n  | 216 | 0.973 | 0.991 | 0.994 | 0.815 | 97.7 % (211/216: 1 false alarm, 4 misses) |
 | **Green** YOLO26n | 120 | 0.833 | 0.830 | 0.700 | 0.289 | 99.2 % (119/120: 0 false alarms, 1 miss) |
 
-`dvc repro` reproduces these numbers exactly (`dvc metrics show`; switch `dataset` in
-`params.yaml` for the other laser).
+`dvc repro` reproduces these numbers exactly on an NVIDIA GPU (`dvc metrics show`; the
+`green` branch has the green run). The `metrics.json` committed now comes from a run on an
+Apple M4 GPU, which differs only in the last digits (red: mAP50-95 0.813, 98.1 % with 3
+misses; green: mAP50-95 0.286) because the two GPUs round floating-point maths differently.
 
 **Effect of preprocessing.** Shrinking the frames to 1280 px in the prepare stage
 (`prepare.max_side: 1280`) gave a smaller dataset but lowered red test mAP50-95 from
