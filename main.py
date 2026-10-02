@@ -14,6 +14,7 @@ Settings (source, imgsz, per-laser conf) live in the `detect:` section of params
 """
 
 import argparse
+import hashlib
 import sys
 from pathlib import Path
 
@@ -25,10 +26,23 @@ import detect  # noqa: E402
 from device import best_device  # noqa: E402
 
 
-def laser_of_model():
-    """The dataset models/model.pt was built from, according to dvc.lock."""
-    lock = yaml.safe_load(open(ROOT / "dvc.lock"))
-    return lock["stages"]["train"]["params"]["params.yaml"]["dataset"]
+def check_model(laser):
+    """Stop unless models/model.pt is the model dvc.lock records for this dataset.
+    Catches an edited params.yaml without `dvc repro`, and a `git checkout` without
+    `dvc checkout` (dvc.lock then describes one model while the old file is still on disk)."""
+    train = yaml.safe_load(open(ROOT / "dvc.lock"))["stages"]["train"]
+    built = train["params"]["params.yaml"]["dataset"]
+    if laser != built:
+        sys.exit(f"params.yaml says dataset: {laser}, but dvc.lock has the model for {built}.\n"
+                 f"Run `dvc repro` to rebuild models/model.pt.")
+    path = ROOT / "models/model.pt"
+    if not path.exists():
+        sys.exit("models/model.pt is missing - run `dvc pull` (or `dvc checkout`).")
+    expected = next(o["md5"] for o in train["outs"] if o["path"] == "models/model.pt")
+    if hashlib.md5(path.read_bytes()).hexdigest() != expected:
+        sys.exit(f"models/model.pt is not the {laser} model that dvc.lock records.\n"
+                 f"Run `dvc checkout` (after switching branches) or `dvc repro`.")
+    return path
 
 
 def main():
@@ -40,13 +54,8 @@ def main():
     p.add_argument("--no-show", action="store_true", help="do not open a window")
     args = p.parse_args()
 
-    laser, built = params["dataset"], laser_of_model()
-    if laser != built:
-        sys.exit(f"params.yaml says dataset: {laser}, but models/model.pt was built for {built}.\n"
-                 f"Run `dvc repro` to rebuild it (or `dvc checkout` after switching branches).")
-    model_path = ROOT / "models/model.pt"
-    if not model_path.exists():
-        sys.exit("models/model.pt is missing - run `dvc pull` (or `dvc checkout`).")
+    laser = params["dataset"]
+    model_path = check_model(laser)
 
     from ultralytics import YOLO
     args.conf, args.imgsz, args.device = d["conf"][laser], d["imgsz"], best_device()
