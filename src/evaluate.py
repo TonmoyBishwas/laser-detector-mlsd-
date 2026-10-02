@@ -18,6 +18,8 @@ import numpy as np
 import yaml
 from ultralytics import YOLO
 
+from device import best_device
+
 PLOTS = ("BoxPR_curve.png", "BoxF1_curve.png", "confusion_matrix_normalized.png")
 
 
@@ -26,11 +28,12 @@ def main():
     e = params["evaluate"]
     data = "data/prepared/data.yaml"
     model = YOLO("models/model.pt")
+    device = best_device()
     run_dir = Path("runs").resolve()
 
     metrics = {"dataset": params["dataset"], "model_source": params["train"]["mode"]}
     for split in ("test", "val"):
-        v = model.val(data=data, split=split, imgsz=e["imgsz"], batch=e["batch"], device=0,
+        v = model.val(data=data, split=split, imgsz=e["imgsz"], batch=e["batch"], device=device,
                       plots=True, project=str(run_dir), name=f"eval_{split}", exist_ok=True, verbose=False)
         metrics["valid" if split == "val" else "test"] = {
             "precision": round(float(v.box.mp), 4), "recall": round(float(v.box.mr), 4),
@@ -43,7 +46,7 @@ def main():
     pred = []
     for i in range(0, len(files), 32):
         pred += [len(r.boxes) > 0 for r in model.predict([str(f) for f in files[i:i + 32]], conf=e["conf"],
-                                                          imgsz=e["imgsz"], device=0, verbose=False)]
+                                                          imgsz=e["imgsz"], device=device, verbose=False)]
     pred = np.array(pred)
     metrics["test_image_level"] = {
         "accuracy": round(float((truth == pred).mean()), 4), "images": len(files),

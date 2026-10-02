@@ -131,6 +131,40 @@ dvc remote modify origin --local password <dagshub-token>
 
 (`--local` writes to `.dvc/config.local`, which is never committed.)
 
+### On a Mac (Apple Silicon)
+
+The pipeline and the live detector pick the device automatically (`src/device.py`):
+NVIDIA GPU → Apple GPU (`mps`) → CPU. `dvc repro` with `train.mode: released` runs in
+about 30 s on an M4 and reproduces the numbers below.
+
+```bash
+uv venv --python 3.12 .venv && source .venv/bin/activate
+uv pip install torch torchvision -r requirements.txt
+# python.org Python ships without CA certificates; without this dvc pull fails with
+# CERTIFICATE_VERIFY_FAILED (or run "Install Certificates.command" once instead)
+export SSL_CERT_FILE="$(python -c 'import certifi; print(certifi.where())')"
+dvc pull
+```
+
+### Live detection (`detect.py`)
+
+Runs the released models on a webcam, RTSP stream, video file or image, on this machine:
+
+```bash
+python detect.py                                  # built-in webcam, green model
+python detect.py --laser red                      # red model (or --laser both)
+python detect.py --source 1                       # another camera, e.g. iPhone Continuity Camera
+python detect.py --source "rtsp://user:pass@192.168.1.20:554/stream1"
+python detect.py --source clip.mp4 --save out.mp4
+python detect.py --source data/raw/green/test/images/<frame>.jpg
+```
+
+Keys: `q`/Esc quit, `s` save a snapshot. `--conf` sets the threshold (default red 0.80 —
+fewer false alarms on webcam scenes, 8/113 test misses instead of 3 — and green 0.25), `--imgsz` the input size (default 1280, as trained; 960/640 is faster but
+misses small dots). On an M4 the green model runs at ~48 FPS at 1280 px. The first webcam
+run asks macOS for camera permission for your terminal app (System Settings → Privacy &
+Security → Camera).
+
 ## 6. Results
 
 Test sets are hand-labelled frames the models never trained on.

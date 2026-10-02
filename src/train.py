@@ -30,10 +30,11 @@ def main():
         raise ValueError(f"train.mode must be 'released' or 'train', got {t['mode']!r}")
 
     from ultralytics import YOLO
+    from device import best_device
     run_dir = Path("runs").resolve()
     YOLO(t["base_model"]).train(
         data="data/prepared/data.yaml", imgsz=t["imgsz"], epochs=t["epochs"], batch=t["batch"],
-        seed=t["seed"], deterministic=True, device=0, workers=2,
+        seed=t["seed"], deterministic=True, device=best_device(), workers=2,
         project=str(run_dir), name="train", exist_ok=True,
         # same augmentation as the earlier project
         fliplr=0.5, flipud=0.5, degrees=10, scale=0.3, hsv_h=0.01, hsv_s=0.5, hsv_v=0.4,

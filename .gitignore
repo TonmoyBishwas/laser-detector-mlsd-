@@ -5,3 +5,4 @@ runs/
 yolo26n.pt
 .ipynb_checkpoints/
 .env
+.venv/

@@ -40,10 +40,14 @@ stages:
       hash: md5
       md5: e1e98158284ad63aa0298cfb721f108e
       size: 5456389
+    - path: src/device.py
+      hash: md5
+      md5: 803e19a8d1353396e0678997f30847b2
+      size: 250
     - path: src/train.py
       hash: md5
-      md5: 3b54be6bf48d94cccc395128cd57b75c
-      size: 1699
+      md5: 210b7fd5e365c24a6c7286d1c2143f13
+      size: 1746
     params:
       params.yaml:
         dataset: red
@@ -71,10 +75,14 @@ stages:
       hash: md5
       md5: e1e98158284ad63aa0298cfb721f108e
       size: 5456389
+    - path: src/device.py
+      hash: md5
+      md5: 803e19a8d1353396e0678997f30847b2
+      size: 250
     - path: src/evaluate.py
       hash: md5
-      md5: 9bd1071958f4eb003d240c5dff5f0465
-      size: 2626
+      md5: 4ce39c3a902520dc243cee3480c953ee
+      size: 2695
     params:
       params.yaml:
         evaluate:
@@ -84,10 +92,10 @@ stages:
     outs:
     - path: metrics/metrics.json
       hash: md5
-      md5: cbbac0101bc6cb71c22e322c46ccab0f
+      md5: 1f1a2f4e4eede03076b96b6b5e5c837f
       size: 378
     - path: metrics/plots
       hash: md5
-      md5: 47f86226d2e7f7edc4d0a5f26466d6f7.dir
-      size: 241422
+      md5: fcc76cef6e7c80c50308374e794566c4.dir
+      size: 239152
       nfiles: 3

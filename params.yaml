@@ -26,3 +26,12 @@ evaluate:
   imgsz: 1280
   conf: 0.25            # confidence for the laser / no-laser decision per image
   batch: 16
+
+detect:
+  # live detection settings for `python main.py` (no pipeline stage reads these, so
+  # changing them never makes a stage out of date)
+  source: 0             # camera index, rtsp://... URL, video file or image
+  imgsz: 1280           # the models were trained at 1280; 960/640 is faster but misses small dots
+  conf:                 # per laser: red gave false alarms on webcam scenes at 0.25.
+    red: 0.80           #   red test set: 0 false alarms, 8/113 misses (0.25: 1 and 3)
+    green: 0.25

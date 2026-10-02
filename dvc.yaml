@@ -17,6 +17,7 @@ stages:
     cmd: python src/train.py
     deps:
       - src/train.py
+      - src/device.py
       - data/prepared
       - models/released/${dataset}_yolo26n.pt
     params:
@@ -29,6 +30,7 @@ stages:
     cmd: python src/evaluate.py
     deps:
       - src/evaluate.py
+      - src/device.py
       - data/prepared
       - models/model.pt
     params:
