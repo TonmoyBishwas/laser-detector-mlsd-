@@ -96,6 +96,8 @@ def draw(frame, found, fps=None):
 
 def run_image(models, args):
     frame = cv2.imread(args.source)
+    if frame is None:
+        sys.exit(f"Could not read image {args.source!r}.")
     found = detect(models, frame, args)
     for d in found:
         print(f"{d[0]} conf={d[1]:.2f} box=({d[2]},{d[3]},{d[4]},{d[5]})")
